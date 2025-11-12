@@ -2,3 +2,95 @@ model/__pycache__
 out
 website/
 docs-minimind/
+
+# Python virtual environment
+.venv/
+venv/
+env/
+
+# pyenv
+.python-version
+
+# JSON files
+*.json
+*.jsonl
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Deep Learning models and checkpoints
+*.pth
+*.pt
+*.h5
+*.hdf5
+*.ckpt
+*.pkl
+*.pickle
+*.pb
+*.onnx
+*.tflite
+*.safetensors
+checkpoints/
+ckpt/
+models/
+weights/
+saved_models/
+
+# Data directories
+data/
+datasets/
+raw_data/
+processed_data/
+
+# Logs and outputs
+*.log
+logs/
+wandb/
+tensorboard/
+runs/
+outputs/
+results/
+experiments/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.cache
+
+# OS files
+Thumbs.db
