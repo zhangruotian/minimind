@@ -91,6 +91,27 @@ experiments/
 *.temp
 *.bak
 *.cache
+**/.*temp/
+**/._____temp/
+
+# Binary/data files
+*.msc
+
+# Submodules or external repos
+MiniMind2/
 
 # OS files
 Thumbs.db
+
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.ico
+*.webp
+*.svg
+*.eps
+*.pdf
+*.mv
