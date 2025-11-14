@@ -99,7 +99,7 @@ class RMSNorm(torch.nn.Module):
         self.weight = nn.Parameter(torch.ones(dim))
 
     def _norm(self, x):
-        return x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
+        return x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps) # x [16,511,512]
 
     def forward(self, x):
         return self.weight * self._norm(x.float()).type_as(x)
