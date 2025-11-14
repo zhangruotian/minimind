@@ -173,13 +173,13 @@ class Attention(nn.Module):
                 use_cache=False,
                 attention_mask: Optional[torch.Tensor] = None):
         bsz, seq_len, _ = x.shape
-        xq, xk, xv = self.q_proj(x), self.k_proj(x), self.v_proj(x)
-        xq = xq.view(bsz, seq_len, self.n_local_heads, self.head_dim)
-        xk = xk.view(bsz, seq_len, self.n_local_kv_heads, self.head_dim)
-        xv = xv.view(bsz, seq_len, self.n_local_kv_heads, self.head_dim)
+        xq, xk, xv = self.q_proj(x), self.k_proj(x), self.v_proj(x) # xq: [bsz, seq_len, 8_heads * head_dim], xk: [bsz, seq_len, 2_heads * head_dim], xv: [bsz, seq_len, 2_heads * head_dim]
+        xq = xq.view(bsz, seq_len, self.n_local_heads, self.head_dim) # [bsz, seq_len, 8_heads, head_dim]
+        xk = xk.view(bsz, seq_len, self.n_local_kv_heads, self.head_dim) # [bsz, seq_len, 2_heads, head_dim]
+        xv = xv.view(bsz, seq_len, self.n_local_kv_heads, self.head_dim) # [bsz, seq_len, 2_heads, head_dim]
 
-        cos, sin = position_embeddings
-        xq, xk = apply_rotary_pos_emb(xq, xk, cos[:seq_len], sin[:seq_len])
+        cos, sin = position_embeddings # [seq_len, head_dim]
+        xq, xk = apply_rotary_pos_emb(xq, xk, cos[:seq_len], sin[:seq_len]) 
 
         # kv_cache实现
         if past_key_value is not None:
@@ -191,8 +191,8 @@ class Attention(nn.Module):
             xq.transpose(1, 2),
             repeat_kv(xk, self.n_rep).transpose(1, 2),
             repeat_kv(xv, self.n_rep).transpose(1, 2)
-        )
-
+        ) # xq: [bsz, 8_heads, seq_len, head_dim], xk: [bsz, 8_heads, seq_len, head_dim], xv: [bsz, 8_heads, seq_len, head_dim]
+        
         if self.flash and seq_len > 1 and (attention_mask is None or torch.all(attention_mask == 1)):
             attn_mask = (
                 None
@@ -202,7 +202,7 @@ class Attention(nn.Module):
 
             output = F.scaled_dot_product_attention(xq, xk, xv, attn_mask=attn_mask, dropout_p=self.dropout if self.training else 0.0, is_causal=True)
         else:
-            scores = (xq @ xk.transpose(-2, -1)) / math.sqrt(self.head_dim)
+            scores = (xq @ xk.transpose(-2, -1)) / math.sqrt(self.head_dim) #  [bsz, 8_heads, seq_len, head_dim] @ [bsz, 8_heads, head_dim, seq_len] = [bsz, 8_heads, seq_len, seq_len]
             scores = scores + torch.triu(
                 torch.full((seq_len, seq_len), float("-inf"), device=scores.device),
                 diagonal=1
@@ -215,9 +215,9 @@ class Attention(nn.Module):
 
             scores = F.softmax(scores.float(), dim=-1).type_as(xq)
             scores = self.attn_dropout(scores)
-            output = scores @ xv
+            output = scores @ xv # [bsz, 8_heads, seq_len, seq_len] @ [bsz, 8_heads, seq_len, head_dim] = [bsz, 8_heads, seq_len, head_dim]
 
-        output = output.transpose(1, 2).reshape(bsz, seq_len, -1)
+        output = output.transpose(1, 2).reshape(bsz, seq_len, -1) # [bsz, 8_heads, seq_len, head_dim] -> [bsz, seq_len, 8_heads * head_dim]
         output = self.resid_dropout(self.o_proj(output))
         return output, past_kv
 
