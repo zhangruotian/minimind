@@ -239,7 +239,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_dir", type=str, default="../out", help="模型保存目录")
     parser.add_argument('--save_weight', default='ppo_actor', type=str, help="保存权重的前缀名")
     parser.add_argument("--epochs", type=int, default=1, help="训练轮数")
-    parser.add_argument("--batch_size", type=int, default=2, help="batch size")
+    parser.add_argument("--batch_size", type=int, default=1, help="batch size")
     parser.add_argument("--learning_rate", type=float, default=8e-8, help="Actor学习率")
     parser.add_argument("--critic_learning_rate", type=float, default=8e-8, help="Critic学习率")
     parser.add_argument("--device", type=str, default="cuda:0" if torch.cuda.is_available() else "cpu", help="训练设备")
@@ -260,7 +260,7 @@ if __name__ == "__main__":
     parser.add_argument("--kl_coef", type=float, default=0.02, help="KL散度惩罚系数")
     parser.add_argument("--reasoning", type=int, default=1, choices=[0, 1], help='推理模型类型（0=普通模型，1=推理模型）')
     parser.add_argument("--update_old_actor_freq", type=int, default=4, help="更新old_actor_model的频率")
-    parser.add_argument("--reward_model_path", type=str, default="../../internlm2-1_8b-reward", help="Reward模型路径")
+    parser.add_argument("--reward_model_path", type=str, default="internlm2-1_8b-reward", help="Reward模型路径")
     parser.add_argument('--from_resume', default=0, type=int, choices=[0, 1], help="是否自动检测&续训（0=否，1=是）")
     parser.add_argument("--use_wandb", action="store_true", help="是否使用wandb")
     parser.add_argument("--wandb_project", type=str, default="MiniMind-PPO", help="wandb项目名")
@@ -309,11 +309,19 @@ if __name__ == "__main__":
     critic_model.load_state_dict(state_dict, strict=False)
     critic_model = critic_model.to(args.device)
     # Reward模型
+    # Convert relative path to absolute path
+    if not os.path.isabs(args.reward_model_path):
+        # Resolve relative to project root (parent of trainer directory)
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        reward_model_path = os.path.abspath(os.path.join(project_root, args.reward_model_path))
+    else:
+        reward_model_path = args.reward_model_path
+    
     reward_model = AutoModel.from_pretrained(
-        args.reward_model_path, torch_dtype=torch.float16, trust_remote_code=True
+        reward_model_path, torch_dtype=torch.float16, trust_remote_code=True
     )
     reward_model = reward_model.to(args.device).eval().requires_grad_(False)
-    reward_tokenizer = AutoTokenizer.from_pretrained(args.reward_model_path, trust_remote_code=True)
+    reward_tokenizer = AutoTokenizer.from_pretrained(reward_model_path, trust_remote_code=True)
     # 数据和优化器
     train_ds = RLAIFDataset(args.data_path, tokenizer, max_length=(args.max_seq_len + args.max_gen_len))
     train_sampler = DistributedSampler(train_ds) if dist.is_initialized() else None
