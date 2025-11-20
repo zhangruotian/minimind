@@ -55,15 +55,14 @@ def train_epoch(epoch, loader, iters, ref_model, lm_config, start_step=0, wandb=
     start_time = time.time()
     
     for step, batch in enumerate(loader, start=start_step + 1):
-        x_chosen = batch['x_chosen'].to(args.device)
-        x_rejected = batch['x_rejected'].to(args.device)
-        y_chosen = batch['y_chosen'].to(args.device)
-        y_rejected = batch['y_rejected'].to(args.device)
+        x_chosen = batch['x_chosen'].to(args.device) # prompt + chosen response (except last token)
+        x_rejected = batch['x_rejected'].to(args.device) # prompt + rejected response (except last token)
+        y_chosen = batch['y_chosen'].to(args.device) # x_chosen learning target (shift right by 1)
+        y_rejected = batch['y_rejected'].to(args.device) # x_rejected learning target (shift right by 1)
         mask_chosen = batch['mask_chosen'].to(args.device)
         mask_rejected = batch['mask_rejected'].to(args.device)
-        x = torch.cat([x_chosen, x_rejected], dim=0)
-        y = torch.cat([y_chosen, y_rejected], dim=0)
-        mask = torch.cat([mask_chosen, mask_rejected], dim=0)
+        x = torch.cat([x_chosen, x_rejected], dim=0) # prompt + chosen response + prompt + rejected response
+        y = torch.cat([y_chosen, y_rejected], dim=0) # learning target for chosen response + learning target for rejected response
 
         lr = get_lr(epoch * iters + step, args.epochs * iters, args.learning_rate)
         for param_group in optimizer.param_groups:
@@ -121,7 +120,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_dir", type=str, default="../out", help="模型保存目录")
     parser.add_argument('--save_weight', default='dpo', type=str, help="保存权重的前缀名")
     parser.add_argument("--epochs", type=int, default=1, help="训练轮数")
-    parser.add_argument("--batch_size", type=int, default=4, help="batch size")
+    parser.add_argument("--batch_size", type=int, default=1, help="batch size")
     parser.add_argument("--learning_rate", type=float, default=4e-8, help="初始学习率（建议<=5e-8避免遗忘）")
     parser.add_argument("--device", type=str, default="cuda:0" if torch.cuda.is_available() else "cpu", help="训练设备")
     parser.add_argument("--dtype", type=str, default="bfloat16", help="混合精度类型")
